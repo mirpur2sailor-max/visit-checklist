@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shop Visit Checklist</title>
+<meta name="theme-color" content="#0F2233">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Visit Checklist">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px system-ui, sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column for a phone held in one hand. Three views: visit list, one visit's checklist with a note and camera on every point, export. */
+:root {
+  --bg: #F2F5F8;
+  --surface: #FFFFFF;
+  --ink: #0F2233;
+  --muted: #5B6B7A;
+  --line: #DCE3EA;
+  --accent: #14649C;
+  --accent-ink: #FFFFFF;
+  --flag: #F2B632;
+  --flag-ink: #3A2A00;
+  --done: #E9F2F8;
+  --field: #F7F9FB;
+  --danger: #B3261E;
+  --ok: #1E7B4F;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1722; --surface: #12212F; --ink: #E7EEF5; --muted: #93A4B4; --line: #223648;
+    --accent: #5AB0E8; --accent-ink: #06202F; --flag: #E8B13A; --flag-ink: #2A1E00; --done: #163044; --field: #0E1B27;
+    --danger: #F2837B; --ok: #62C48F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1722; --surface: #12212F; --ink: #E7EEF5; --muted: #93A4B4; --line: #223648;
+  --accent: #5AB0E8; --accent-ink: #06202F; --flag: #E8B13A; --flag-ink: #2A1E00; --done: #163044; --field: #0E1B27;
+  --danger: #F2837B; --ok: #62C48F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.4;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 56px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 640px; margin: 0 auto; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px; }
+
+/* header */
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 12px 0; border-bottom: 1px solid var(--line); }
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--font-display); font-size: 24px; line-height: 1.12; margin: 2px 0 0; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.vmeta { color: var(--muted); font-size: 14px; margin-top: 2px; overflow-wrap: anywhere; }
+.back { background: none; border: 0; color: var(--accent); font-weight: 600; padding: 4px 0 8px; min-height: 36px; cursor: pointer; }
+.chip { flex: none; font-size: 12px; font-weight: 600; padding: 5px 9px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); white-space: nowrap; }
+.chip.ok { color: var(--ok); border-color: var(--ok); }
+.chip.error { color: var(--danger); border-color: var(--danger); }
+.prog { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.bar { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .25s ease; }
+.count { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; white-space: nowrap; }
+
+/* shared controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 18px; border-radius: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 12px; }
+.card h2 { font-family: var(--font-display); font-size: 18px; margin: 0 0 10px; }
+.field { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; min-width: 0; }
+.field:first-of-type { margin-top: 0; }
+.field label, .lab { font-size: 13px; font-weight: 600; color: var(--muted); }
+input[type=text], input[type=date], select, textarea {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--field); border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; min-width: 0;
+}
+input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.hint { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+.who { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.who b { overflow-wrap: anywhere; }
+.link { background: none; border: 0; color: var(--accent); font-weight: 600; cursor: pointer; padding: 8px 0; min-height: 40px; }
+
+/* visit list */
+.vlist { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 0; list-style: none; }
+.vcard { width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; cursor: pointer; display: block; }
+.vcard b { font-family: var(--font-display); font-size: 17px; display: block; overflow-wrap: anywhere; }
+.vcard span.m { color: var(--muted); font-size: 14px; display: block; margin-top: 2px; overflow-wrap: anywhere; }
+.vcard .mini { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.empty { margin-top: 18px; padding: 22px 16px; text-align: center; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 14px; }
+
+/* checklist */
+.intro { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+.sec { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 12px; overflow: hidden; }
+summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px; cursor: pointer; min-height: 56px; }
+summary::-webkit-details-marker { display: none; }
+.badge { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 15px; background: var(--done); color: var(--accent); }
+.sec.focus .badge { background: var(--flag); color: var(--flag-ink); }
+.stitle { flex: 1; min-width: 0; }
+.stitle b { font-family: var(--font-display); font-size: 17px; font-weight: 600; display: block; line-height: 1.2; }
+.stitle em { font-style: normal; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--flag-ink); background: var(--flag); padding: 2px 7px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+.scount { font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; color: var(--muted); }
+.scount.full { color: var(--accent); }
+.chev { flex: none; width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; margin: 0 4px 3px 0; }
+details[open] > summary .chev { transform: rotate(-135deg); margin: 3px 4px 0 0; }
+.list { border-top: 1px solid var(--line); }
+.item { padding: 12px 14px 14px; border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item.on { background: var(--done); }
+.row { display: flex; gap: 14px; align-items: flex-start; cursor: pointer; -webkit-tap-highlight-color: transparent; min-height: 40px; }
+.row input { appearance: none; -webkit-appearance: none; flex: none; width: 26px; height: 26px; margin: 1px 0 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.row input::after { content: ""; width: 7px; height: 13px; border-right: 3px solid var(--accent-ink); border-bottom: 3px solid var(--accent-ink); transform: rotate(45deg) translate(-1px, -1px) scale(0); transition: transform .12s ease; }
+.row input:checked { background: var(--accent); border-color: var(--accent); }
+.row input:checked::after { transform: rotate(45deg) translate(-1px, -1px) scale(1); }
+.txt { min-width: 0; }
+.txt b { font-weight: 600; display: block; }
+.txt small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.noterow { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0 40px; }
+.noterow textarea { flex: 1; resize: none; overflow: hidden; min-height: 44px; line-height: 1.35; padding: 10px 12px; }
+.cam { flex: none; width: 44px; height: 44px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--field); color: var(--accent); display: grid; place-items: center; cursor: pointer; }
+.cam svg { width: 22px; height: 22px; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 40px; }
+.thumbs:empty { display: none; }
+.thumb { width: 64px; height: 64px; border-radius: 10px; border: 1px solid var(--line); background: var(--field) center / cover no-repeat; cursor: pointer; padding: 0; display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.tools .btn { padding: 8px 6px; font-size: 15px; min-width: 0; text-align: center; line-height: 1.2; }
+.tools.two { grid-template-columns: 1fr 1fr; }
+.dest { text-align: left; background: var(--field); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: block; width: 100%; }
+.dest b { display: block; color: var(--accent); }
+.dest small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+.msg { color: var(--danger); font-size: 14px; margin: 10px 0 0; }
+
+/* export */
+.pick { display: flex; flex-direction: column; gap: 4px; }
+.pick label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; min-height: 44px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.pick label:last-child { border-bottom: 0; }
+.pick input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.pick span { min-width: 0; overflow-wrap: anywhere; }
+.pick small { display: block; color: var(--muted); font-size: 13px; }
+
+/* photo viewer + toast */
+.viewer { position: fixed; inset: 0; z-index: 30; background: rgba(5, 12, 18, .94); display: flex; flex-direction: column; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); gap: 12px; }
+.viewer img { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+.viewer .vb { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.viewer .btn { color: #fff; border-color: #fff; }
+.viewer .btn.danger { color: #FFB4AB; border-color: #FFB4AB; }
+.toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 80; max-width: calc(100% - 32px); text-align: center; }
+a.btn { text-decoration: none; }
+.vrow { display: flex; gap: 8px; align-items: stretch; }
+.vrow .vcard { flex: 1; min-width: 0; }
+.sharebtn { flex: none; width: 64px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.sharebtn svg { width: 22px; height: 22px; }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ok); border: 1px solid var(--ok); border-radius: 6px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+.sheet { position: fixed; inset: 0; z-index: 50; background: rgba(5, 12, 18, .6); display: flex; align-items: flex-end; justify-content: center; }
+.sheetbox { background: var(--surface); width: 100%; max-width: 640px; max-height: 92%; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 18px max(16px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheetbox h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 8px; }
+.sheetbox textarea { font-size: 14px; resize: vertical; }
+.stack { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.chk { display: flex; gap: 10px; align-items: center; margin-top: 14px; min-height: 40px; cursor: pointer; }
+.chk input { width: 22px; height: 22px; accent-color: var(--accent); }
+.foot { margin-top: 22px; color: var(--muted); font-size: 13px; }
+@media (max-width: 380px) { .two { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header id="hdr"></header>
+  <main id="app"></main>
+</div>
+<div class="viewer" id="viewer" hidden></div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="file" accept="image/*" multiple hidden>
+
+<script>
+/* ---------- checklist content ---------- */
+var DATA = [
+  { id: "A", title: "Fashion trend & design", focus: true, items: [
+    ["Colors", "Trending colors and color pairings"],
+    ["Fit & silhouette", "Cuts, lengths, oversized vs tailored"],
+    ["Fabric & details", "Fabrics, prints, patterns, embroidery, trims"],
+    ["Collection story", "Season or festival theme; how the range is edited"],
+    ["Complete looks", "Layering, accessories, footwear and bags styled together"],
+    ["Street style", "What local people and visitors are really wearing"],
+    ["Price vs design", "What looks premium at its price"],
+    ["Fit for Bangladesh", "Which ideas suit our customers, climate and occasions"]
+  ]},
+  { id: "B", title: "Window & entrance", items: [
+    ["First impression", "What makes you stop and look from a distance?"],
+    ["Window story", "One clear theme, few products, one message"],
+    ["Mannequin styling", "Full looks, poses, color blocking"],
+    ["Entrance", "Welcoming; offers or new arrivals visible at the door"]
+  ]},
+  { id: "C", title: "In-store display (VM)", items: [
+    ["Product grouping", "By category, color, size or complete look"],
+    ["Color blocking & rhythm", "How walls and racks are balanced"],
+    ["Focal points", "Mannequins, feature tables, hero products"],
+    ["Folding, hanging & spacing", "Neat, consistent, easy to pick up"],
+    ["Zones", "New arrival, premium and sale areas clearly separate"],
+    ["Promo display & signage", "Simple, readable, not crowded"],
+    ["Lighting on products", "Spotlights, warm vs cool, no dark corners"]
+  ]},
+  { id: "D", title: "Layout & customer flow", items: [
+    ["Where the eye goes first", "Entry zone, feature wall, route through the store"],
+    ["Walking space", "Aisle width, no blocked corners"],
+    ["Reach & visibility", "Best products at eye and hand level"],
+    ["Fixtures & materials", "Simple, flexible, low-cost ideas we can copy"]
+  ]},
+  { id: "E", title: "Making buying easy", focus: true, items: [
+    ["Easy to find", "Signs, size guides, clear sections"],
+    ["Easy to choose", "Tags show fabric, fit, price and care at a glance"],
+    ["Self-service", "Customers pick up, touch and try freely"],
+    ["Styling help", "“Complete the look” displays and matching suggestions"],
+    ["Add-ons at the point of choice", "Accessories and small items near the clothes"],
+    ["Offers explained clearly", "Visible, simple, not confusing"],
+    ["Price tags & labels", "Clear, consistent, trustworthy"],
+    ["Sizes", "How sizes are shown; how staff bring another size"],
+    ["Exchange & return message", "Visible reassurance for the customer"],
+    ["Membership or loyalty offer", "Promoted at the counter or on signs"]
+  ]},
+  { id: "F", title: "Staff & service", items: [
+    ["Greeting", "Timing and tone; welcome without pressure"],
+    ["Helping without hovering", "How close staff stay; when they step in"],
+    ["Product knowledge", "Ask one question and see how they answer"],
+    ["Grooming & body language", "Uniform, posture, smile"],
+    ["Suggesting a second item", "How they add to the sale politely"]
+  ]},
+  { id: "G", title: "Fitting room & checkout", items: [
+    ["Fitting room", "Clean, well lit, mirror, hooks, privacy, size-swap help"],
+    ["Queue & billing", "Speed, calm handling, payment options"],
+    ["Packaging & farewell", "Bag, tissue, branding, how it is handed over"]
+  ]},
+  { id: "H", title: "Atmosphere & brand feel", items: [
+    ["Cleanliness", "Floor, glass, racks, corners"],
+    ["Music, scent & temperature", "How the space feels"],
+    ["Brand consistency", "Colors, fonts, bags, uniform feel like one brand"],
+    ["Digital touchpoints", "QR codes, social media, screens"],
+    ["Photo-worthy corner", "A feature that makes shoppers take pictures"]
+  ]},
+  { id: "I", title: "Beyond fashion: hotels, restaurants, local shops", items: [
+    ["Hotel welcome", "First 30 seconds, small thoughtful touches, speed"],
+    ["Hotel ambience", "Lobby lighting, scent, layout"],
+    ["Restaurant presentation", "How menus and food are shown; combo or set offers"],
+    ["Waiting & queues", "How people are kept comfortable while they wait"],
+    ["Local or night market", "How vendors call, talk and display on a small budget"]
+  ]},
+  { id: "J", title: "Before you leave", items: [
+    ["Best thing to copy at Sailor", "One idea you would bring home"],
+    ["One thing to avoid", "Something that did not work"],
+    ["Anything else worth sharing", "For your presentation"]
+  ]}
+];
+var TYPES = ["Brand store", "Mall store", "Local shop", "Street / night market", "Hotel", "Restaurant / café", "Other"];
+var ITEM = {}, TOTAL = 0;
+DATA.forEach(function (s) { s.items.forEach(function (it, i) { ITEM[s.id + (i + 1)] = { sec: s, title: it[0], hint: it[1] }; TOTAL++; }); });
+
+/* ---------- helpers ---------- */
+function $(s, r) { return (r || document).querySelector(s); }
+function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function today() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function fmtDate(s) { var p = (s || "").split("-"); if (p.length !== 3) return s || ""; return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
+function slug(t) { return String(t || "file").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "file"; }
+var toastTimer;
+function toast(msg) { var t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2600); }
+
+/* ---------- local store (IndexedDB, with in-memory fallback) ---------- */
+var S = { view: "home", visits: [], cur: null, urls: {}, profile: { name: "", branch: "" }, open: { A: 1 }, formOpen: false, editProfile: false, editDetails: false, confirmDelete: false, sync: "off", memoryOnly: false, ex: null };
+var store = (function () {
+  var db = null, mem = { visits: {}, blobs: {} };
+  function req(r) { return new Promise(function (res, rej) { r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  function tx(name, mode) { return db.transaction(name, mode).objectStore(name); }
+  return {
+    init: function () {
+      return new Promise(function (res) {
+        try {
+          var o = indexedDB.open("sailor-th-shop-visits", 2);
+          o.onupgradeneeded = function () { var d = o.result; if (!d.objectStoreNames.contains("visits")) d.createObjectStore("visits", { keyPath: "id" }); if (!d.objectStoreNames.contains("blobs")) d.createObjectStore("blobs"); if (!d.objectStoreNames.contains("meta")) d.createObjectStore("meta"); };
+          o.onsuccess = function () { db = o.result; res(); };
+          o.onerror = function () { S.memoryOnly = true; res(); };
+          o.onblocked = function () { S.memoryOnly = true; res(); };
+        } catch (e) { S.memoryOnly = true; res(); }
+      });
+    },
+    all: function () { if (!db) return Promise.resolve(Object.keys(mem.visits).map(function (k) { return mem.visits[k]; })); return req(tx("visits").getAll()).catch(function () { return []; }); },
+    put: function (v) { if (!db) { mem.visits[v.id] = JSON.parse(JSON.stringify(v)); return Promise.resolve(); } return req(tx("visits", "readwrite").put(JSON.parse(JSON.stringify(v)))).catch(function () {}); },
+    del: function (id) { if (!db) { delete mem.visits[id]; return Promise.resolve(); } return req(tx("visits", "readwrite").delete(id)).catch(function () {}); },
+    putBlob: function (id, b) { if (!db) { mem.blobs[id] = b; return Promise.resolve(); } return req(tx("blobs", "readwrite").put(b, id)); },
+    getBlob: function (id) { if (!db) return Promise.resolve(mem.blobs[id] || null); return req(tx("blobs").get(id)).then(function (b) { return b || null; }).catch(function () { return null; }); },
+    getMeta: function (k) { if (!db) return Promise.resolve(mem[k] || null); return req(tx("meta").get(k)).then(function (x) { return x || null; }).catch(function () { return null; }); },
+    putMeta: function (k, v) { if (!db) { mem[k] = v; return Promise.resolve(); } return req(tx("meta", "readwrite").put(v, k)).catch(function () {}); },
+    delMeta: function (k) { if (!db) { delete mem[k]; return Promise.resolve(); } return req(tx("meta", "readwrite").delete(k)).catch(function () {}); },
+    delBlob: function (id) { if (!db) { delete mem.blobs[id]; return Promise.resolve(); } return req(tx("blobs", "readwrite").delete(id)).catch(function () {}); }
+  };
+})();
+
+/* ---------- profile (name and branch of this manager) ---------- */
+var PKEY = "sailor-th-profile-v1";
+try { var pr = JSON.parse(localStorage.getItem(PKEY) || "null"); if (pr) S.profile = { name: pr.name || "", branch: pr.branch || "" }; } catch (e) {}
+function saveProfile() {
+  try { localStorage.setItem(PKEY, JSON.stringify(S.profile)); } catch (e) {}
+  if (C.db && C.uid) { C.db.doc(C.path + "/profile").set({ name: S.profile.name, branch: S.profile.branch }).catch(function () {}); }
+}
+
+/* ---------- cloud backup (db + assets), optional ---------- */
+var C = { db: null, uid: null, assets: null, downloads: null, path: null, ready: false, claudeName: "" };
+var syncChain = Promise.resolve(), syncTimers = {}, saveTimers = {};
+function setSync(s) { S.sync = s; var c = $("#chip"); if (c) paintChip(c); }
+function paintChip(c) {
+  var m = { off: ["Saved on this phone", ""], pending: ["Saving…", ""], ok: ["Backed up", "ok"], error: ["Backup waiting", "error"] }[S.sync];
+  c.textContent = m[0]; c.className = "chip " + m[1];
+}
+function toDoc(v) {
+  return {
+    id: v.id, person: v.person || "", branch: v.branch || "", shop: v.shop || "", type: v.type || "", area: v.area || "", date: v.date || "",
+    checks: v.checks, notes: v.notes,
+    photos: v.photos.map(function (p) { return { id: p.id, item: p.item, ts: p.ts, assetId: p.assetId || null }; }),
+    finished: !!v.finished, createdAt: v.createdAt || v.updatedAt, updatedAt: v.updatedAt
+  };
+}
+function scheduleSync(v) {
+  if (!C.ready) return;
+  setSync("pending");
+  clearTimeout(syncTimers[v.id]);
+  syncTimers[v.id] = setTimeout(function () { syncChain = syncChain.then(function () { return doSync(v); }); }, 1500);
+}
+function doSync(v) {
+  var stamp = v.updatedAt;
+  return (async function () {
+    try {
+      if (!navigator.onLine) throw new Error("offline");
+      if (C.assets) {
+        for (var i = 0; i < v.photos.length; i++) {
+          var p = v.photos[i];
+          if (p.assetId) continue;
+          var b = await store.getBlob(p.id);
+          if (!b) continue;
+          try { var r = await C.assets.upload(b, { type: "image/jpeg" }); p.assetId = r.id; }
+          catch (e) { if (e && (e.code === "store_unavailable" || e.code === "rate_limited")) throw e; }
+        }
+      }
+      await C.db.collection(C.path).doc("visit_" + v.id).set(toDoc(v));
+      v.syncedAt = stamp; store.put(v); setSync("ok");
+    } catch (e) { setSync("error"); }
+  })();
+}
+function flushSaves() { Object.keys(saveTimers).forEach(function (id) { clearTimeout(saveTimers[id]); var v = S.visits.filter(function (x) { return x.id === id; })[0]; if (v) store.put(v); }); saveTimers = {}; }
+function touch(v) {
+  v.updatedAt = Date.now();
+  clearTimeout(saveTimers[v.id]);
+  saveTimers[v.id] = setTimeout(function () { delete saveTimers[v.id]; store.put(v); }, 300);
+  scheduleSync(v);
+}
+async function useCap(n) { try { return await window.claude.use(n); } catch (e) { return null; } }
+function softRender() {
+  var a = document.activeElement, typing = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  if (S.view === "home" && !typing) renderHome(); else paintHeader();
+}
+async function initCloud() {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    var user = await useCap("user");
+    var db = await useCap("db");
+    C.assets = null; /* photos stay on the device and in your own exports, never in shared storage */
+    C.downloads = await useCap("downloads");
+    if (user) { try { var me = await user.me(); C.claudeName = me.name || ""; } catch (e) {} }
+    if (db && user) {
+      var id = await user.id();
+      if (id) { C.db = db; C.uid = id; C.path = "data/users/" + id; }
+    }
+    if (!C.db) { softRender(); return; }
+    C.ready = true; setSync("ok");
+    try {
+      var pdoc = await C.db.doc(C.path + "/profile").get();
+      if (pdoc.exists && !S.profile.name) { var d = pdoc.data(); S.profile = { name: d.name || "", branch: d.branch || "" }; try { localStorage.setItem(PKEY, JSON.stringify(S.profile)); } catch (e) {} }
+      var snap = await C.db.collection(C.path).get();
+      snap.docs.forEach(function (doc) {
+        if (doc.id.indexOf("visit_") !== 0) return;
+        var d = JSON.parse(JSON.stringify(doc.data()));
+        var local = S.visits.filter(function (x) { return x.id === d.id; })[0];
+        if (local && local.updatedAt >= d.updatedAt) return;
+        d.syncedAt = d.updatedAt; d.photos = d.photos || []; d.checks = d.checks || {}; d.notes = d.notes || {};
+        if (local) S.visits.splice(S.visits.indexOf(local), 1);
+        S.visits.push(d); store.put(d);
+      });
+    } catch (e) {}
+    S.visits.forEach(function (v) { if (!v.syncedAt || v.syncedAt < v.updatedAt) scheduleSync(v); });
+    sortVisits();
+    softRender();
+  } catch (e) { setSync("off"); }
+}
+window.addEventListener("online", function () { if (C.ready) S.visits.forEach(function (v) { if (!v.syncedAt || v.syncedAt < v.updatedAt) scheduleSync(v); }); });
+document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flushSaves(); });
+window.addEventListener("pagehide", flushSaves);
+
+/* ---------- visits ---------- */
+function sortVisits() { S.visits.sort(function (a, b) { return (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0); }); }
+function newVisit(f) {
+  var now = Date.now();
+  return { id: uid(), person: S.profile.name, branch: S.profile.branch, shop: f.shop, type: f.type, area: f.area, date: f.date, checks: {}, notes: {}, photos: [], createdAt: now, updatedAt: now };
+}
+function progress(v) { return Object.keys(v.checks).filter(function (k) { return ITEM[k] && v.checks[k]; }).length; }
+function readForm() {
+  return { shop: $("#f-shop").value.trim(), type: $("#f-type").value, area: $("#f-area").value.trim(), date: $("#f-date").value || today() };
+}
+function formHtml(v, label) {
+  var names = {}; S.visits.forEach(function (x) { if (x.shop) names[x.shop] = 1; });
+  var f = v || { shop: "", type: TYPES[0], area: "", date: today() };
+  return '<div class="card"><h2>' + (v ? "Visit details" : "New visit") + '</h2>' +
+    '<div class="field"><label for="f-shop">Shop or place name</label><input type="text" id="f-shop" list="shoplist" autocomplete="off" placeholder="e.g. Uniqlo, Siam Paragon" value="' + esc(f.shop) + '"><datalist id="shoplist">' + Object.keys(names).map(function (n) { return '<option value="' + esc(n) + '">'; }).join("") + '</datalist></div>' +
+    '<div class="field"><label for="f-type">Type of place</label><select id="f-type">' + TYPES.map(function (t) { return '<option' + (t === f.type ? " selected" : "") + '>' + esc(t) + '</option>'; }).join("") + '</select></div>' +
+    '<div class="two"><div class="field"><label for="f-area">Area or mall</label><input type="text" id="f-area" placeholder="e.g. Siam" value="' + esc(f.area) + '"></div>' +
+    '<div class="field"><label for="f-date">Date</label><input type="date" id="f-date" value="' + esc(f.date) + '"></div></div>' +
+    '<div class="actions"><button class="btn primary" data-act="' + (v ? "save-details" : "start") + '">' + label + '</button><button class="btn" data-act="cancel-form">Cancel</button></div></div>';
+}
+
+/* ---------- header ---------- */
+function paintHeader() {
+  var h = $("#hdr"), v = S.cur;
+  if (S.view === "visit" && v) {
+    var done = progress(v), pct = Math.round(done / TOTAL * 100);
+    h.innerHTML = '<div class="top"><button class="back" data-act="home">← All visits</button><span id="chip" class="chip"></span></div>' +
+      '<h1>' + esc(v.shop || "Untitled visit") + '</h1><div class="vmeta">' + esc([v.type, v.area, fmtDate(v.date)].filter(Boolean).join(" · ")) + '</div>' +
+      '<div class="prog"><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i id="barfill" style="width:' + pct + '%"></i></div><div class="count" id="total">' + done + ' / ' + TOTAL + '</div></div>';
+  } else if (S.view === "export") {
+    h.innerHTML = '<div class="top"><button class="back" data-act="home">← All visits</button></div><h1>Export records</h1>';
+  } else {
+    h.innerHTML = '<div class="top"><div><div class="kicker">Sailor · Thailand Learning Tour</div><h1>Shop Visit Checklist</h1></div><span id="chip" class="chip"></span></div>';
+  }
+  var c = $("#chip"); if (c) paintChip(c);
+}
+
+/* ---------- home ---------- */
+var TIPKEY = "sailor-th-tip-seen";
+function tipSeen() { try { return localStorage.getItem(TIPKEY) === "1"; } catch (e) { return false; } }
+function isStandalone() { try { return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true; } catch (e) { return false; } }
+function renderHome() {
+  S.view = "home"; S.cur = null; paintHeader();
+  var p = S.profile, html = "";
+  if (!p.name || S.editProfile) {
+    html += '<div class="card"><h2>' + (p.name ? "Your details" : "Who is visiting?") + '</h2>' +
+      '<div class="field"><label for="p-name">Your name</label><input type="text" id="p-name" autocomplete="name" value="' + esc(p.name || C.claudeName) + '"></div>' +
+      '<div class="field"><label for="p-branch">Branch you manage</label><input type="text" id="p-branch" placeholder="e.g. Mirpur-2" value="' + esc(p.branch) + '"></div>' +
+      '<div class="actions"><button class="btn primary" data-act="save-profile">Save</button>' + (p.name ? '<button class="btn" data-act="cancel-profile">Cancel</button>' : "") + '</div>' +
+      '<p class="hint">Your name and branch are added to every record and report you export.</p></div>';
+  } else {
+    html += '<div class="card who"><div>Visiting as <b>' + esc(p.name) + '</b>' + (p.branch ? '<span class="vmeta"> · ' + esc(p.branch) + '</span>' : "") + '</div><button class="link" data-act="edit-profile">Edit</button></div>';
+    if (S.formOpen) html += formHtml(null, "Start checklist");
+    else html += '<div class="actions"><button class="btn primary block" data-act="new">Start a new visit</button></div>';
+  }
+  if (!tipSeen() && !isStandalone()) html += '<div class="card"><h2>Use it like an app</h2><p style="margin:0">Android Chrome: tap \u22EE, then <b>Add to Home screen</b>.<br>iPhone Safari: tap Share, then <b>Add to Home Screen</b>.</p><p class="hint">Always open it from that icon. Each browser keeps its own records, so your visits are in the one you used.</p><div class="actions"><button class="btn" data-act="tip-ok">Got it</button></div></div>';
+  if (S.memoryOnly) html += '<p class="hint" style="color:var(--danger)">This browser blocks storage, so records are kept only while this page stays open. Export often.</p>';
+  if (S.visits.length) {
+    html += '<ul class="vlist">' + S.visits.map(function (v) {
+      var done = progress(v), pct = Math.round(done / TOTAL * 100);
+      return '<li class="vrow"><button class="vcard" data-act="open" data-id="' + esc(v.id) + '"><b>' + esc(v.shop || "Untitled visit") + (v.finished ? '<span class="pill">Saved</span>' : "") + '</b><span class="m">' + esc([v.type, v.area, fmtDate(v.date)].filter(Boolean).join(" · ")) + '</span>' +
+        '<span class="mini"><span class="bar"><i style="width:' + pct + '%"></i></span><span>' + done + '/' + TOTAL + ' ticked · ' + v.photos.length + ' photo' + (v.photos.length === 1 ? "" : "s") + '</span></span></button><button class="sharebtn" data-act="share" data-id="' + esc(v.id) + '" aria-label="Share ' + esc(v.shop || "visit") + '">' + SHARE + 'Share</button></li>';
+    }).join("") + '</ul>';
+    html += '<div class="actions"><button class="btn block" data-act="export">Export records for my presentation</button></div>';
+  } else if (p.name) {
+    html += '<div class="empty">No visits yet. Start one when you reach your first shop, hotel or market.</div>';
+  }
+  html += '<p class="foot">' + "Your visits are private. They stay on this phone" + (C.ready ? ", with a text backup in your own account" : "") + ". Nobody else can open them, not even the person who shared this link. Photos are never uploaded; keep them safe by saving the Excel file." + '</p>';
+  $("#app").innerHTML = html;
+}
+
+/* ---------- visit ---------- */
+var SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>';
+var CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
+function grow(t) { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 420) + "px"; }
+function renderVisit() {
+  var v = S.cur; S.view = "visit"; paintHeader();
+  var html = "";
+  if (S.editDetails) html += formHtml(v, "Save details");
+  html += '<p class="intro">Tick what you see. Write what you noticed in the box under each point, and tap the camera to add a photo to that point. Ask permission before taking photos.</p>';
+  DATA.forEach(function (s) {
+    var n = s.items.filter(function (it, i) { return v.checks[s.id + (i + 1)]; }).length;
+    html += '<details class="sec' + (s.focus ? " focus" : "") + '" data-sec="' + s.id + '"' + (S.open[s.id] ? " open" : "") + '><summary><span class="badge">' + s.id + '</span><span class="stitle"><b>' + esc(s.title) + '</b>' + (s.focus ? "<em>Main focus</em>" : "") + '</span><span class="scount' + (n === s.items.length ? " full" : "") + '" id="sc-' + s.id + '">' + n + '/' + s.items.length + '</span><span class="chev"></span></summary><div class="list">';
+    s.items.forEach(function (it, i) {
+      var id = s.id + (i + 1);
+      html += '<div class="item' + (v.checks[id] ? " on" : "") + '" data-id="' + id + '"><label class="row"><input type="checkbox"' + (v.checks[id] ? " checked" : "") + '><span class="txt"><b>' + esc(it[0]) + '</b><small>' + esc(it[1]) + '</small></span></label>' +
+        '<div class="noterow"><textarea rows="1" placeholder="Note: what did you see?" aria-label="Note for ' + esc(it[0]) + '"></textarea><button class="cam" data-act="cam" aria-label="Add photo for ' + esc(it[0]) + '">' + CAM + '</button></div><div class="thumbs"></div></div>';
+    });
+    html += '</div></details>';
+  });
+  html += '<div class="actions"><button class="btn primary block" data-act="save-visit">Save visit</button></div>';
+  if (S.confirmDelete) html += '<p class="hint" style="margin-top:14px">Delete this visit and its photos for good?</p><div class="tools two"><button class="btn danger" data-act="delete-yes">Delete for good</button><button class="btn" data-act="delete-no">Keep</button></div>';
+  else html += '<div class="tools"><button class="btn" data-act="share" data-id="' + esc(v.id) + '">Share</button><button class="btn" data-act="edit-details">Edit details</button><button class="btn danger" data-act="delete">Delete visit</button></div>';
+  $("#app").innerHTML = html;
+  $$(".item").forEach(function (it) {
+    var id = it.getAttribute("data-id"), ta = $("textarea", it);
+    ta.value = v.notes[id] || "";
+    renderThumbs(id);
+  });
+  $$("details.sec[open] textarea").forEach(grow);
+}
+function renderThumbs(itemId) {
+  var it = $('.item[data-id="' + itemId + '"]'); if (!it) return;
+  var box = $(".thumbs", it), v = S.cur;
+  box.innerHTML = v.photos.filter(function (p) { return p.item === itemId; }).map(function (p) {
+    var u = S.urls[p.id] || (p.assetId ? "/_blob/" + p.assetId : "");
+    return '<button class="thumb" data-act="photo" data-pid="' + esc(p.id) + '" aria-label="Open photo"' + (u ? ' style="background-image:url(\'' + esc(u) + '\')"' : "") + '>' + (u ? "" : "No file") + '</button>';
+  }).join("");
+}
+function updateProgress() {
+  var v = S.cur, done = progress(v), pct = Math.round(done / TOTAL * 100);
+  $("#total").textContent = done + " / " + TOTAL; $("#barfill").style.width = pct + "%"; $(".bar").setAttribute("aria-valuenow", pct);
+  DATA.forEach(function (s) {
+    var n = s.items.filter(function (it, i) { return v.checks[s.id + (i + 1)]; }).length, e = $("#sc-" + s.id);
+    e.textContent = n + "/" + s.items.length; e.className = "scount" + (n === s.items.length ? " full" : "");
+  });
+}
+async function openVisit(id) {
+  var v = S.visits.filter(function (x) { return x.id === id; })[0]; if (!v) return;
+  S.cur = v; S.editDetails = false; S.confirmDelete = false;
+  for (var i = 0; i < v.photos.length; i++) {
+    var p = v.photos[i];
+    if (!S.urls[p.id]) { var b = await store.getBlob(p.id); if (b) S.urls[p.id] = URL.createObjectURL(b); }
+  }
+  renderVisit(); window.scrollTo(0, 0);
+}
+
+/* ---------- photos ---------- */
+function loadImg(file) { return new Promise(function (res, rej) { var u = URL.createObjectURL(file), i = new Image(); i.onload = function () { URL.revokeObjectURL(u); res(i); }; i.onerror = rej; i.src = u; }); }
+async function compress(file) {
+  try {
+    var img;
+    try { img = await createImageBitmap(file, { imageOrientation: "from-image" }); } catch (e) { img = await loadImg(file); }
+    var w = img.width, h = img.height, m = Math.max(w, h), k = m > 1600 ? 1600 / m : 1;
+    var cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    var blob = await new Promise(function (r) { cv.toBlob(r, "image/jpeg", 0.8); });
+    if (blob) return blob;
+  } catch (e) {}
+  return file;
+}
+var pendingItem = null;
+$("#file").addEventListener("change", async function (e) {
+  var files = Array.prototype.slice.call(e.target.files || []), v = S.cur, item = pendingItem;
+  e.target.value = "";
+  if (!v || !item || !files.length) return;
+  for (var i = 0; i < files.length; i++) {
+    var blob = await compress(files[i]), id = uid();
+    try { await store.putBlob(id, blob); } catch (err) { toast("Could not save the photo on this phone."); continue; }
+    S.urls[id] = URL.createObjectURL(blob);
+    v.photos.push({ id: id, item: item, ts: Date.now() });
+    renderThumbs(item); touch(v);
+  }
+  toast(files.length > 1 ? files.length + " photos added" : "Photo added");
+});
+async function photoBlob(p) {
+  var b = await store.getBlob(p.id); if (b) return b;
+  if (p.assetId) { try { var r = await fetch("/_blob/" + p.assetId); if (r.ok) return await r.blob(); } catch (e) {} }
+  return null;
+}
+function showPhoto(pid) {
+  var v = S.cur, p = v.photos.filter(function (x) { return x.id === pid; })[0]; if (!p) return;
+  var u = S.urls[p.id] || (p.assetId ? "/_blob/" + p.assetId : ""), vw = $("#viewer");
+  vw.innerHTML = (u ? '<img alt="Photo for ' + esc(ITEM[p.item] ? ITEM[p.item].title : "") + '" src="' + esc(u) + '">' : '<p style="color:#fff;margin:auto">This photo is not available on this device.</p>') +
+    '<div class="vb"><button class="btn" data-act="photo-save" data-pid="' + esc(pid) + '">Save photo</button><button class="btn danger" data-act="photo-del" data-pid="' + esc(pid) + '">Delete</button><button class="btn" data-act="photo-close">Close</button></div>';
+  vw.hidden = false;
+}
+
+/* ---------- export ---------- */
+function renderExport() {
+  S.view = "export"; paintHeader();
+  var ex = S.ex || (S.ex = { sel: {}, mode: "topic", file: null, busy: false });
+  S.visits.forEach(function (v) { if (ex.sel[v.id] === undefined) ex.sel[v.id] = true; });
+  var html = '<div class="card"><h2>Visits to include</h2><div class="pick">' + S.visits.map(function (v) {
+    return '<label><input type="checkbox" data-vid="' + esc(v.id) + '"' + (ex.sel[v.id] ? " checked" : "") + '><span>' + esc(v.shop || "Untitled visit") + '<small>' + esc([v.type, v.area, fmtDate(v.date)].filter(Boolean).join(" · ")) + ' · ' + progress(v) + ' ticked · ' + v.photos.length + ' photos</small></span></label>';
+  }).join("") + '</div></div>' +
+    '<div class="card"><h2>Excel layout</h2><div class="pick">' +
+    '<label><input type="radio" name="mode" value="topic"' + (ex.mode === "topic" ? " checked" : "") + '><span>By topic<small>One sheet. Each checklist point with what you saw in every shop, and the photos beside it. Best for building slides.</small></span></label>' +
+    '<label><input type="radio" name="mode" value="shop"' + (ex.mode === "shop" ? " checked" : "") + '><span>By shop<small>One sheet per visit.</small></span></label></div></div>';
+  if (ex.file) {
+    html += '<div class="card"><h2>Excel report ready</h2><p class="hint" style="margin-top:0">' + esc(ex.file.name) + ' · ' + kb(ex.file.blob) + '</p><div class="stack">' +
+      '<button class="btn primary block" data-act="xl-save">Save Excel file</button>' + (fileFor(ex.file) ? '<button class="btn block" data-act="xl-share">Share Excel file</button>' : "") + '</div></div>';
+  } else {
+    html += '<div class="actions"><button class="btn primary block" data-act="xl-make"' + (ex.busy ? " disabled" : "") + '>' + (ex.busy ? "Creating Excel report…" : "Create Excel report (with photos)") + '</button></div>';
+  }
+  html += '<div class="actions"><button class="btn block" data-act="dl-csv">Notes only (CSV, no photos)</button></div>' +
+    (getDest() ? '<p class="hint">Files save to ' + DESTNAME[getDest()] + '. <button class="link" data-act="reset-dest" style="padding:0;min-height:0">Change</button></p>' : "") +
+    '<p class="hint">The Excel file opens as a report: one row per checklist point with your note, and the photos beside it. Upload it to Google Drive from your phone if you want another copy.</p>';
+  $("#app").innerHTML = html;
+}
+function exName(vs) { return vs.length === 1 ? "Sailor_Thailand_" + slug(vs[0].shop) + "_" + (vs[0].date || "") + ".xlsx" : "Sailor_Thailand_Report_" + slug(S.profile.name) + ".xlsx"; }
+async function buildExport() {
+  var vs = chosen(); if (!vs.length) { toast("Pick at least one visit"); return; }
+  S.ex.busy = true; renderExport();
+  try { var blob = await makeExcel(vs, S.ex.mode); S.ex.file = { blob: blob, name: exName(vs) }; }
+  catch (e) { toast("Could not create the Excel file. Connect to the internet once so the Excel tool can load, then try again."); }
+  S.ex.busy = false; if (S.view === "export") renderExport();
+}
+
+function chosen() { return S.visits.filter(function (v) { return S.ex.sel[v.id]; }); }
+function csvCell(t) { t = String(t == null ? "" : t); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+function buildCsv(vs) {
+  var rows = [["Name", "Branch", "Shop or place", "Type", "Area", "Date", "Section", "Checklist point", "Seen", "Note", "Photos"]];
+  vs.forEach(function (v) {
+    DATA.forEach(function (s) {
+      s.items.forEach(function (it, i) {
+        var id = s.id + (i + 1), n = (v.notes[id] || "").trim(), c = v.checks[id], pc = v.photos.filter(function (p) { return p.item === id; }).length;
+        if (!c && !n && !pc) return;
+        rows.push([v.person || S.profile.name, v.branch || S.profile.branch, v.shop, v.type, v.area, v.date, s.title, it[0], c ? "Yes" : "No", n, pc]);
+      });
+    });
+  });
+  return "﻿" + rows.map(function (r) { return r.map(csvCell).join(","); }).join("\r\n");
+}
+async function getDownloads() {
+  if (!C.downloads) C.downloads = await useCap("downloads");
+  return C.downloads;
+}
+/* ---- where files go: the person picks once, and may ask the page to remember it ---- */
+var DESTKEY = "sailor-th-save-dest";
+function getDest() { try { return localStorage.getItem(DESTKEY) || ""; } catch (e) { return ""; } }
+function setDest(v) { try { if (v) localStorage.setItem(DESTKEY, v); else localStorage.removeItem(DESTKEY); } catch (e) {} }
+var DESTNAME = { share: "the share sheet", downloads: "your Downloads folder", folder: "the folder you picked" };
+function askDest(blob, name) {
+  return new Promise(function (res) {
+    var sh = $("#sheet"), canShare = !!fileFor({ blob: blob, name: name }), canFolder = typeof window.showDirectoryPicker === "function";
+    sh.removeAttribute("data-vid");
+    sh.innerHTML = '<div class="sheetbox"><h2>Where do you want to save it?</h2><div class="stack">' +
+      (canShare ? '<button class="dest" data-d="share"><b>Choose an app or folder</b><small>Opens your phone’s share sheet: Google Drive, Files, WhatsApp, Gmail and more.</small></button>' : "") +
+      '<button class="dest" data-d="downloads"><b>Downloads folder on this device</b><small>Saves straight away. To pick a folder every time, turn on “Ask where to save files” in your browser’s Downloads settings.</small></button>' +
+      (canFolder ? '<button class="dest" data-d="folder"><b>Pick a folder on this computer</b><small>You choose once, then files go there.</small></button>' : "") +
+      '</div><label class="chk"><input type="checkbox" id="nm-skip"><span>Remember my choice and don’t ask again</span></label>' +
+      '<div class="stack"><button class="btn block" id="nm-no">Cancel</button></div></div>';
+    sh.hidden = false;
+    function done(d) { var keep = $("#nm-skip") && $("#nm-skip").checked; sh.hidden = true; sh.innerHTML = ""; if (d && keep) setDest(d); res(d); }
+    $$(".dest", sh).forEach(function (b) { b.onclick = function () { done(b.getAttribute("data-d")); }; });
+    $("#nm-no").onclick = function () { done(null); };
+  });
+}
+async function saveToFolder(name, blob) {
+  var h = await store.getMeta("dir");
+  if (!h || !window.showDirectoryPicker) h = null;
+  if (!h) { h = await window.showDirectoryPicker({ mode: "readwrite" }); await store.putMeta("dir", h); }
+  var p = await h.queryPermission({ mode: "readwrite" });
+  if (p !== "granted") p = await h.requestPermission({ mode: "readwrite" });
+  if (p !== "granted") throw new Error("denied");
+  var fh = await h.getFileHandle(name, { create: true }), w = await fh.createWritable();
+  await w.write(blob); await w.close();
+  toast("Saved in " + (h.name || "your folder"));
+}
+async function saveDownloads(name, blob) {
+  var d = await getDownloads();
+  if (d) {
+    try { await d.save({ filename: name, data: blob }); toast("Saved"); return "saved"; }
+    catch (e) { if (e && e.code === "declined") return "declined"; }
+  }
+  try {
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+    toast("Saved to Downloads"); return "saved";
+  } catch (e) { toast("Could not save the file."); return "error"; }
+}
+/* resolves "saved" | "declined" | "error" */
+async function saveFile(name, data) {
+  var blob = data instanceof Blob ? data : new Blob([data]);
+  var dest = getDest();
+  if (dest === "share" && !fileFor({ blob: blob, name: name })) dest = "";
+  if (dest === "folder" && typeof window.showDirectoryPicker !== "function") dest = "";
+  if (!dest) { dest = await askDest(blob, name); if (!dest) return "declined"; }
+  if (dest === "share") {
+    var r = await shareFile({ blob: blob, name: name }, null, true);
+    if (r === "shared") return "saved";
+    if (r === "cancelled") return "declined";
+    toast("The share sheet could not open, so the file was saved to Downloads instead.");
+    return saveDownloads(name, blob);
+  }
+  if (dest === "folder") {
+    try { await saveToFolder(name, blob); return "saved"; }
+    catch (e) { if (e && e.name === "AbortError") return "declined"; toast("Could not use that folder, so the file was saved to Downloads instead."); }
+  }
+  return saveDownloads(name, blob);
+}
+function download(name, data) { return saveFile(name, data); }
+
+function copyText(t) {
+  return (async function () {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+    try { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); ta.remove(); return ok; } catch (e) { return false; }
+  })();
+}
+function buildText(v) {
+  var L = ["Sailor Thailand Learning Tour", [S.profile.name, S.profile.branch].filter(Boolean).join(" · "), "", "Visit: " + (v.shop || "Untitled"), [v.type, v.area, fmtDate(v.date)].filter(Boolean).join(" · "), "Ticked " + progress(v) + "/" + TOTAL + (v.photos.length ? " · " + v.photos.length + " photo" + (v.photos.length === 1 ? "" : "s") + " kept in the app" : "")];
+  DATA.forEach(function (s) {
+    var part = [];
+    s.items.forEach(function (it, i) {
+      var id = s.id + (i + 1), c = v.checks[id], n = (v.notes[id] || "").trim();
+      if (!c && !n) return;
+      part.push((c ? "✓ " : "• ") + it[0] + (n ? ": " + n : ""));
+    });
+    if (part.length) { L.push("", s.id + ". " + s.title); L = L.concat(part); }
+  });
+  return L.join("\n");
+}
+var shState = null;
+function renderSheet() {
+  var v = S.visits.filter(function (x) { return x.id === $("#sheet").getAttribute("data-vid"); })[0]; if (!v) return;
+  var text = buildText(v), wa = text.length > 2600 ? text.slice(0, 2600) + "\n…(copy the full summary from the app)" : text, f = shState && shState.id === v.id ? shState : null;
+  var sh = $("#sheet"), keep = sh.querySelector("#sh-text");
+  sh.innerHTML = '<div class="sheetbox"><h2>Share “' + esc(v.shop || "visit") + '”</h2>' +
+    '<p class="hint" style="margin-top:0">The Excel file has your notes with the photos beside them. Keep a copy in WhatsApp or Drive so nothing is lost.</p><div class="stack">' +
+    (f && f.blob ? (fileFor(f) ? '<button class="btn primary block" data-act="sh-xshare">Share Excel file</button>' : "") + '<button class="btn ' + (fileFor(f) ? "" : "primary ") + 'block" data-act="sh-xsave">Save Excel file (' + kb(f.blob) + ')</button>' : (f && f.failed ? '<button class="btn primary block" data-act="sh-retry">Excel not ready. Try again</button>' : '<button class="btn block" disabled>Preparing Excel report…</button>')) +
+    '</div><p class="msg" id="sh-msg" hidden></p><div class="lab" style="margin-top:18px">Text only</div><textarea id="sh-text" readonly rows="5" style="margin-top:6px"></textarea><div class="stack">' +
+    '<a class="btn block" id="sh-wa" target="_blank" rel="noopener">Send summary on WhatsApp</a>' +
+    '<a class="btn block" id="sh-mail" target="_blank" rel="noopener">Email summary (Gmail)</a>' +
+    '<button class="btn block" data-act="sh-copy">Copy summary</button>' +
+    '<button class="btn block" data-act="sh-close">Close</button></div></div>';
+  $("#sh-text").value = text; $("#sh-wa").href = "https://wa.me/?text=" + encodeURIComponent(wa);
+  $("#sh-mail").href = "mailto:?subject=" + encodeURIComponent("Thailand Learning Tour: " + (v.shop || "visit")) + "&body=" + encodeURIComponent(text.length > 1800 ? text.slice(0, 1800) + "\n\u2026" : text);
+}
+async function openShare(id) {
+  var v = S.visits.filter(function (x) { return x.id === id; })[0]; if (!v) return;
+  var sh = $("#sheet"); sh.setAttribute("data-vid", id); sh.hidden = false;
+  shState = { id: id, blob: null, name: exName([v]), failed: false }; renderSheet();
+  try { shState.blob = await makeExcel([v], "shop"); } catch (e) { shState.failed = true; }
+  if (!sh.hidden && sh.getAttribute("data-vid") === id) renderSheet();
+}
+
+/* ---------- Excel report ---------- */
+var XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+function buildWorkbook(ExcelJS, ctx) {
+  var wb = new ExcelJS.Workbook();
+  wb.creator = ctx.name || "Sailor"; wb.created = new Date();
+  var NAVY = "FF0F2233", BAND = "FFDCE9F2", FOCUS = "FFFBEFC8", LINE = "FFDCE3EA", GREY = "FF5B6B7A", GREEN = "FF1E7B4F";
+  var F = function (o) { o.name = "Calibri"; return o; };
+  var imgCache = {};
+  function imgId(pid) { var ph = ctx.photos[pid]; if (!ph) return null; if (imgCache[pid] === undefined) imgCache[pid] = wb.addImage({ base64: ph.data, extension: "jpeg" }); return imgCache[pid]; }
+  var maxPh = 1;
+  ctx.visits.forEach(function (v) {
+    var per = {};
+    v.photos.forEach(function (p) { if (ctx.photos[p.id]) per[p.item] = (per[p.item] || 0) + 1; });
+    Object.keys(per).forEach(function (k) { if (per[k] > maxPh) maxPh = per[k]; });
+  });
+  maxPh = Math.min(maxPh, 8);
+
+  function setup(ws, ncols, headerRow) {
+    ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+    ws.views = [{ state: "frozen", ySplit: headerRow, showGridLines: false }];
+  }
+  function head(ws, ncols, t1, t2, t3) {
+    ws.mergeCells(1, 1, 1, ncols); var c = ws.getCell(1, 1); c.value = t1; c.font = F({ size: 16, bold: true, color: { argb: NAVY } }); c.alignment = { vertical: "middle" }; ws.getRow(1).height = 28;
+    ws.mergeCells(2, 1, 2, ncols); c = ws.getCell(2, 1); c.value = t2; c.font = F({ size: 11, color: { argb: GREY } });
+    ws.mergeCells(3, 1, 3, ncols); c = ws.getCell(3, 1); c.value = t3; c.font = F({ size: 11, color: { argb: GREY } });
+  }
+  function header(ws, r, labels, ncols) {
+    for (var i = 0; i < ncols; i++) {
+      var c = ws.getCell(r, i + 1); c.value = labels[i] || ""; c.font = F({ bold: true, color: { argb: "FFFFFFFF" } });
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } }; c.alignment = { vertical: "middle", horizontal: i === 0 ? "left" : "left", indent: 0 };
+    }
+    ws.getRow(r).height = 24;
+  }
+  function band(ws, r, text, ncols, focus) {
+    ws.mergeCells(r, 1, r, ncols); var c = ws.getCell(r, 1); c.value = text; c.font = F({ bold: true, size: 12, color: { argb: NAVY } });
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: focus ? FOCUS : BAND } }; c.alignment = { vertical: "middle" }; ws.getRow(r).height = 22;
+  }
+  function entry(ws, r, vals, seenCol, noteCol, noteWidth, photoCol, photoIds, ncols) {
+    var note = String(vals[noteCol - 1] || ""), lines = 1;
+    note.split("\n").forEach(function (ln) { lines += Math.max(0, Math.ceil(ln.length / (noteWidth * 1.05)) - 1) ; });
+    note.split("\n").length > 1 && (lines += note.split("\n").length - 1);
+    var h = Math.max(22, lines * 16 + 6);
+    if (photoIds.length) h = Math.max(h, 118);
+    for (var i = 0; i < ncols; i++) {
+      var c = ws.getCell(r, i + 1);
+      if (i < vals.length) c.value = vals[i];
+      c.font = F({ size: 11 }); c.alignment = { vertical: "top", wrapText: true };
+      c.border = { bottom: { style: "thin", color: { argb: LINE } } };
+    }
+    ws.getCell(r, 1).font = F({ size: 11, bold: true });
+    if (seenCol) { var sc = ws.getCell(r, seenCol); sc.font = F({ size: 14, bold: true, color: { argb: GREEN } }); sc.alignment = { vertical: "top", horizontal: "center" }; }
+    ws.getRow(r).height = h;
+    photoIds.forEach(function (pid, k) {
+      var id = imgId(pid), ph = ctx.photos[pid]; if (id === null || id === undefined) return;
+      var s = Math.min(146 / ph.w, 146 / ph.h), w = Math.max(1, Math.round(ph.w * s)), hh = Math.max(1, Math.round(ph.h * s));
+      ws.addImage(id, { tl: { col: photoCol - 1 + k + 0.05, row: r - 1 + 0.05 }, ext: { width: w, height: hh }, editAs: "oneCell" });
+    });
+  }
+  function photosOf(v, itemId) { return v.photos.filter(function (p) { return p.item === itemId && ctx.photos[p.id]; }).slice(0, 8).map(function (p) { return p.id; }); }
+  function hasContent(v, id) { return !!(v.checks[id] || (v.notes[id] || "").trim() || v.photos.some(function (p) { return p.item === id; })); }
+  var used = {};
+  function sheetName(t) { var n = String(t || "Sheet").replace(/[\[\]\*\?:\\\/]/g, " ").trim().slice(0, 27) || "Sheet", b = n, i = 2; while (used[n.toLowerCase()]) { n = b.slice(0, 25) + " " + i++; } used[n.toLowerCase()] = 1; return n; }
+  function who() { return [ctx.name, ctx.branch].filter(Boolean).join(" · "); }
+  function metaOf(v) { return [v.type, v.area, ctx.fmtDate(v.date)].filter(Boolean).join(" · "); }
+  function ticked(v) { return Object.keys(v.checks).filter(function (k) { return ctx.items[k] && v.checks[k]; }).length; }
+
+  /* overview */
+  if (ctx.visits.length > 1) {
+    var ov = wb.addWorksheet(sheetName("Overview")), n = 7;
+    [30, 20, 18, 14, 12, 12, 12].forEach(function (w, i) { ov.getColumn(i + 1).width = w; });
+    head(ov, n, "Thailand Learning Tour", who(), ctx.visits.length + " visits");
+    header(ov, 5, ["Shop or place", "Type", "Area", "Date", "Ticked", "Notes", "Photos"], n);
+    ctx.visits.forEach(function (v, i) {
+      var r = 6 + i, notes = Object.keys(v.notes).filter(function (k) { return (v.notes[k] || "").trim(); }).length;
+      [v.shop, v.type, v.area, ctx.fmtDate(v.date), ticked(v) + " / " + ctx.total, notes, v.photos.length].forEach(function (x, j) { var c = ov.getCell(r, j + 1); c.value = x; c.font = F({ size: 11, bold: j === 0 }); c.border = { bottom: { style: "thin", color: { argb: LINE } } }; c.alignment = { vertical: "middle" }; });
+      ov.getRow(r).height = 22;
+    });
+    setup(ov, n, 5);
+  }
+
+  if (ctx.mode === "topic") {
+    var ncols = 5 + maxPh, ws = wb.addWorksheet(sheetName("By topic"));
+    var widths = [30, 24, 13, 8, 56]; widths.forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+    for (var k = 0; k < maxPh; k++) ws.getColumn(6 + k).width = 22;
+    head(ws, ncols, "Thailand Learning Tour · Notes by topic", who(), ctx.visits.length + " visit" + (ctx.visits.length === 1 ? "" : "s"));
+    header(ws, 5, ["Checklist point", "Shop or place", "Date", "Seen", "Note", "Photos"], ncols);
+    var r = 6;
+    ctx.sections.forEach(function (s) {
+      var rows = [];
+      s.items.forEach(function (it, i) {
+        var id = s.id + (i + 1);
+        ctx.visits.forEach(function (v) { if (hasContent(v, id)) rows.push({ v: v, id: id, title: it[0] }); });
+      });
+      if (!rows.length) return;
+      band(ws, r++, s.id + ". " + s.title, ncols, s.focus);
+      rows.forEach(function (x) {
+        entry(ws, r, [x.title, x.v.shop, ctx.fmtDate(x.v.date), x.v.checks[x.id] ? "✓" : "", (x.v.notes[x.id] || "").trim()], 4, 5, 56, 6, photosOf(x.v, x.id), ncols);
+        r++;
+      });
+    });
+    if (r === 6) { ws.getCell(r, 1).value = "Nothing recorded yet."; ws.getCell(r, 1).font = F({ italic: true, color: { argb: GREY } }); }
+    setup(ws, ncols, 5);
+  } else {
+    ctx.visits.forEach(function (v) {
+      var ncols = 3 + maxPh, ws = wb.addWorksheet(sheetName((v.shop || "Visit") + " " + (v.date || "").slice(5)));
+      [32, 8, 58].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+      for (var k = 0; k < maxPh; k++) ws.getColumn(4 + k).width = 22;
+      var np = v.photos.length;
+      head(ws, ncols, v.shop || "Untitled visit", metaOf(v), "Visited by " + (who() || "-") + " · Ticked " + ticked(v) + " of " + ctx.total + " · " + np + " photo" + (np === 1 ? "" : "s"));
+      header(ws, 5, ["Checklist point", "Seen", "Note", "Photos"], ncols);
+      var r = 6, any = false;
+      ctx.sections.forEach(function (s) {
+        var rows = [];
+        s.items.forEach(function (it, i) { var id = s.id + (i + 1); if (hasContent(v, id)) rows.push({ id: id, title: it[0] }); });
+        if (!rows.length) return;
+        any = true; band(ws, r++, s.id + ". " + s.title, ncols, s.focus);
+        rows.forEach(function (x) { entry(ws, r, [x.title, v.checks[x.id] ? "✓" : "", (v.notes[x.id] || "").trim()], 2, 3, 58, 4, photosOf(v, x.id), ncols); r++; });
+      });
+      if (!any) { ws.getCell(r, 1).value = "Nothing recorded yet."; ws.getCell(r, 1).font = F({ italic: true, color: { argb: GREY } }); }
+      setup(ws, ncols, 5);
+    });
+  }
+  return wb;
+}
+
+
+/* ---------- Excel creation and delivery ---------- */
+var xlPromise = null;
+function loadExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (xlPromise) return xlPromise;
+  var urls = ["exceljs.min.js", "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js", "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"];
+  xlPromise = new Promise(function (res, rej) {
+    var i = 0;
+    (function next() {
+      if (i >= urls.length) { xlPromise = null; rej(new Error("load")); return; }
+      var s = document.createElement("script"); s.src = urls[i++];
+      s.onload = function () { if (window.ExcelJS) res(window.ExcelJS); else next(); };
+      s.onerror = function () { s.remove(); next(); };
+      document.head.appendChild(s);
+    })();
+  });
+  return xlPromise;
+}
+async function prepPhoto(p) {
+  var b = await photoBlob(p); if (!b) return null;
+  try {
+    var bmp; try { bmp = await createImageBitmap(b); } catch (e) { bmp = await loadImg(b); }
+    var m = Math.max(bmp.width, bmp.height), k = m > 900 ? 900 / m : 1, w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    var cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    return { data: cv.toDataURL("image/jpeg", 0.8), w: w, h: h };
+  } catch (e) { return null; }
+}
+async function makeExcel(vs, mode) {
+  var X = await loadExcelJS(), photos = {};
+  for (var i = 0; i < vs.length; i++) for (var j = 0; j < vs[i].photos.length; j++) { var p = vs[i].photos[j], r = await prepPhoto(p); if (r) photos[p.id] = r; }
+  var wb = buildWorkbook(X, { name: S.profile.name, branch: S.profile.branch, visits: vs, photos: photos, mode: mode, sections: DATA, items: ITEM, total: TOTAL, fmtDate: fmtDate });
+  var buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], { type: XLSX_MIME });
+}
+function kb(b) { return b.size > 1048576 ? (b.size / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b.size / 1024)) + " KB"; }
+function fileFor(f) { try { var x = new File([f.blob], f.name, { type: f.blob.type || XLSX_MIME }); return navigator.canShare && navigator.canShare({ files: [x] }) ? x : null; } catch (e) { return null; } }
+async function shareFile(f, msgEl, quiet) {
+  var x = fileFor(f);
+  function say(t) { if (quiet) return; if (msgEl) { msgEl.textContent = t; msgEl.hidden = false; } else toast(t); }
+  if (!x) { say("This browser cannot share files directly. Tap Save Excel file, then attach it in WhatsApp or Gmail."); return "unsupported"; }
+  try { await navigator.share({ files: [x], title: f.name, text: "Sailor Thailand Learning Tour" }); return "shared"; }
+  catch (e) {
+    if (e && e.name === "AbortError") return "cancelled";
+    say("The share sheet was blocked here" + (e && e.name ? " (" + e.name + ")" : "") + ". If this page is open inside WhatsApp, tap the ⋮ menu and choose Open in Chrome, then try again. Or tap Save Excel file and attach it in WhatsApp or Gmail.");
+    return "blocked";
+  }
+}
+
+/* ---------- events ---------- */
+$("#app").addEventListener("click", async function (e) {
+  var b = e.target.closest("[data-act]"); if (!b) return;
+  var act = b.getAttribute("data-act"), v = S.cur;
+  if (act === "tip-ok") { try { localStorage.setItem(TIPKEY, "1"); } catch (er) {} renderHome(); }
+  else if (act === "new") { S.formOpen = true; renderHome(); $("#f-shop").focus(); }
+  else if (act === "cancel-form") { if (S.view === "home") { S.formOpen = false; renderHome(); } else { S.editDetails = false; renderVisit(); } }
+  else if (act === "start") {
+    var f = readForm(); if (!f.shop) { $("#f-shop").focus(); toast("Enter the shop or place name"); return; }
+    var nv = newVisit(f); S.visits.push(nv); sortVisits(); store.put(nv); scheduleSync(nv); S.formOpen = false; S.open = { A: 1 }; openVisit(nv.id);
+  }
+  else if (act === "open") openVisit(b.getAttribute("data-id"));
+  else if (act === "home") { flushSaves(); renderHome(); }
+  else if (act === "edit-profile") { S.editProfile = true; renderHome(); }
+  else if (act === "cancel-profile") { S.editProfile = false; renderHome(); }
+  else if (act === "save-profile") {
+    var nm = $("#p-name").value.trim(); if (!nm) { $("#p-name").focus(); return; }
+    S.profile = { name: nm, branch: $("#p-branch").value.trim() }; S.editProfile = false; saveProfile(); renderHome();
+  }
+  else if (act === "edit-details") { S.editDetails = true; renderVisit(); window.scrollTo(0, 0); $("#f-shop").focus(); }
+  else if (act === "save-details") {
+    var g = readForm(); if (!g.shop) { $("#f-shop").focus(); toast("Enter the shop or place name"); return; }
+    v.shop = g.shop; v.type = g.type; v.area = g.area; v.date = g.date; touch(v); sortVisits(); S.editDetails = false; renderVisit();
+  }
+  else if (act === "delete") { S.confirmDelete = true; renderVisit(); window.scrollTo(0, document.body.scrollHeight); }
+  else if (act === "delete-no") { S.confirmDelete = false; renderVisit(); }
+  else if (act === "delete-yes") {
+    var id = v.id;
+    for (var i = 0; i < v.photos.length; i++) { var p = v.photos[i]; store.delBlob(p.id); if (p.assetId && C.assets) { try { await C.assets.delete(p.assetId); } catch (er) {} } }
+    S.visits = S.visits.filter(function (x) { return x.id !== id; }); await store.del(id);
+    if (C.db) { try { await C.db.collection(C.path).doc("visit_" + id).delete(); } catch (er) {} }
+    S.confirmDelete = false; renderHome(); toast("Visit deleted");
+  }
+  else if (act === "cam") { pendingItem = b.closest(".item").getAttribute("data-id"); $("#file").click(); }
+  else if (act === "photo") showPhoto(b.getAttribute("data-pid"));
+  else if (act === "export") { renderExport(); window.scrollTo(0, 0); }
+  else if (act === "reset-dest") { setDest(""); store.delMeta("dir"); toast("You will be asked where to save next time."); if (S.view === "export") renderExport(); else renderHome(); }
+  else if (act === "xl-make") buildExport();
+  else if (act === "xl-save") { if (S.ex.file) saveFile(S.ex.file.name, S.ex.file.blob); }
+  else if (act === "xl-share") { if (S.ex.file) shareFile(S.ex.file); }
+  else if (act === "dl-csv") {
+    var vs2 = chosen(); if (!vs2.length) { toast("Pick at least one visit"); return; }
+    saveFile("Sailor_Thailand_Notes_" + slug(S.profile.name) + ".csv", buildCsv(vs2));
+  }
+  else if (act === "share") openShare(b.getAttribute("data-id"));
+  else if (act === "save-visit") {
+    v.finished = true; touch(v); flushSaves(); S.formOpen = false; S.editProfile = false;
+    renderHome(); window.scrollTo(0, 0); toast("Visit saved. Ready for the next one.");
+  }
+});
+$("#hdr").addEventListener("click", function (e) { var b = e.target.closest('[data-act="home"]'); if (b) { flushSaves(); renderHome(); } });
+$("#app").addEventListener("change", function (e) {
+  var t = e.target, v = S.cur;
+  if (t.matches('.item input[type=checkbox]')) {
+    var it = t.closest(".item"), id = it.getAttribute("data-id");
+    if (t.checked) v.checks[id] = 1; else delete v.checks[id];
+    it.classList.toggle("on", t.checked); touch(v); updateProgress();
+  } else if (t.matches("[data-vid]")) { S.ex.sel[t.getAttribute("data-vid")] = t.checked; S.ex.file = null; renderExport(); }
+  else if (t.name === "mode") { S.ex.mode = t.value; S.ex.file = null; renderExport(); }
+});
+$("#app").addEventListener("input", function (e) {
+  var t = e.target;
+  if (t.matches(".noterow textarea")) {
+    var id = t.closest(".item").getAttribute("data-id"), val = t.value;
+    if (val.trim()) S.cur.notes[id] = val; else delete S.cur.notes[id];
+    grow(t); touch(S.cur);
+  }
+});
+$("#app").addEventListener("toggle", function (e) {
+  var d = e.target; if (!d.matches || !d.matches("details.sec")) return;
+  var id = d.getAttribute("data-sec");
+  if (d.open) { S.open[id] = 1; $$("textarea", d).forEach(grow); } else delete S.open[id];
+}, true);
+$("#viewer").addEventListener("click", async function (e) {
+  var b = e.target.closest("[data-act]"); if (!b) return;
+  var act = b.getAttribute("data-act"), v = S.cur, pid = b.getAttribute("data-pid");
+  if (act === "photo-close") { $("#viewer").hidden = true; }
+  else if (act === "photo-save") {
+    var p = v.photos.filter(function (x) { return x.id === pid; })[0], blob = p && await photoBlob(p);
+    if (blob) { var rs = await download(slug(v.shop) + "_" + (p.item || "photo") + "_" + pid.slice(-4) + ".jpg", blob); if (rs === "unavailable") toast("Saving files is blocked in this view. Long-press the photo to save it."); } else toast("Photo file not available");
+  }
+  else if (act === "photo-del") {
+    if (b.getAttribute("data-sure") !== "1") { b.setAttribute("data-sure", "1"); b.textContent = "Tap again to delete"; return; }
+    var q = v.photos.filter(function (x) { return x.id === pid; })[0]; if (!q) return;
+    v.photos = v.photos.filter(function (x) { return x.id !== pid; }); store.delBlob(pid); delete S.urls[pid];
+    if (q.assetId && C.assets) { try { await C.assets.delete(q.assetId); } catch (er) {} }
+    $("#viewer").hidden = true; renderThumbs(q.item); touch(v); toast("Photo deleted");
+  }
+});
+
+$("#sheet").addEventListener("click", async function (e) {
+  var sh = $("#sheet"), b = e.target.closest("[data-act]");
+  if (e.target === sh && sh.querySelector("#sh-text")) { sh.hidden = true; sh.innerHTML = ""; return; }
+  if (!b) return;
+  var act = b.getAttribute("data-act"), id = sh.getAttribute("data-vid");
+  if (act === "sh-close") { sh.hidden = true; sh.innerHTML = ""; }
+  else if (act === "sh-copy") { var ok = await copyText($("#sh-text").value); if (!ok) { $("#sh-text").select(); } toast(ok ? "Summary copied" : "Select the text and copy it"); }
+  else if (act === "sh-xshare" && shState && shState.blob) shareFile({ blob: shState.blob, name: shState.name }, $("#sh-msg"));
+  else if (act === "sh-xsave" && shState && shState.blob) {
+    var v = S.visits.filter(function (x) { return x.id === id; })[0], keepId = id;
+    sh.hidden = true; sh.innerHTML = "";
+    await saveFile(shState.name, shState.blob);
+  }
+  else if (act === "sh-retry") openShare(id);
+});
+
+/* ---------- start ---------- */
+(async function () {
+  await store.init();
+  S.visits = (await store.all()).map(function (v) { v.photos = v.photos || []; v.checks = v.checks || {}; v.notes = v.notes || {}; return v; });
+  sortVisits();
+  renderHome();
+  initCloud();
+  loadExcelJS().catch(function () {});
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator && window.top === window && /^https?:$/.test(location.protocol)) {
+  window.addEventListener("load", function () { try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {} });
+}
+</script>
+</body>
+</html>
